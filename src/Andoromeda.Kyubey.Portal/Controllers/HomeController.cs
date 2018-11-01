@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Andoromeda.Kyubey.Models;
 using Andoromeda.Kyubey.Portal.Models;
 using Pomelo.AspNetCore.Localization;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace Andoromeda.Kyubey.Portal.Controllers
 {
@@ -39,6 +41,59 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                 .ToListAsync();
 
             return View(tokens);
+        }
+
+        public async Task<IActionResult> GenerateJsonTokenFile([FromServices] KyubeyContext db)
+        {
+            var tokens = await db.Tokens.Include(x => x.User).ToListAsync();
+            var rootFolder = System.AppDomain.CurrentDomain.BaseDirectory;
+            var rootTokensFolder = System.IO.Path.Combine(rootFolder, @"Tokens");
+
+            var dexs = db.Otcs.ToList();
+            var bancors = db.Bancors.ToList();
+            var hatchers = db.TokenHatchers.ToList();
+
+            foreach (var t in tokens)
+            {
+                var tokenFolder = System.IO.Path.Combine(rootTokensFolder, t.Name);
+                var filePath = System.IO.Path.Combine(tokenFolder, @"manifest.json");
+                if (!System.IO.Directory.Exists(tokenFolder))
+                {
+                    Directory.CreateDirectory(tokenFolder);
+                }
+                if (!System.IO.File.Exists(filePath))
+                {
+                    // Create a file to write to.
+                    using (StreamWriter sw = System.IO.File.CreateText(filePath))
+                    {
+                        var tokenJObj = new TokenManifestJObject()
+                        {
+                            Id = t.Id,
+                            Owners = t.User.UserName,
+                            Priority = 0,
+                            Dex = dexs.Exists(x => x.Id == t.Id),
+                            Incubation = hatchers.Exists(x => x.TokenId == t.Id),
+                            Contract_Exchange = bancors.Exists(x => x.Id == t.Id),
+                            Basic = new TokenManifestBasicJObject()
+                            {
+                                Contract = new TokenManifestBasicContractJObject()
+                                {
+                                    pricing = t.Contract,
+                                    transfer = t.Contract
+                                },
+                                Email = t.Email,
+                                Github = t.GitHub,
+                                Protocol = t.CurveId,
+                                Tg = "",
+                                Website = t.WebUrl
+
+                            }
+                        };
+                        sw.Write(JsonConvert.SerializeObject(tokenJObj, Formatting.Indented));
+                    }
+                }
+            }
+            return Ok();
         }
 
         [Route("/Dex")]
