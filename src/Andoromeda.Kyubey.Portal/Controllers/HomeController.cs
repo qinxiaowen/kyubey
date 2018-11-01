@@ -52,15 +52,18 @@ namespace Andoromeda.Kyubey.Portal.Controllers
             var dexs = db.Otcs.ToList();
             var bancors = db.Bancors.ToList();
             var hatchers = db.TokenHatchers.ToList();
+            var banners = db.TokenBanners.ToList();
 
             foreach (var t in tokens)
             {
-                var tokenFolder = System.IO.Path.Combine(rootTokensFolder, t.Name);
-                var filePath = System.IO.Path.Combine(tokenFolder, @"manifest.json");
+                var tokenFolder = System.IO.Path.Combine(rootTokensFolder, t.Id);
+
                 if (!System.IO.Directory.Exists(tokenFolder))
                 {
                     Directory.CreateDirectory(tokenFolder);
                 }
+                //manifest.json
+                var filePath = System.IO.Path.Combine(tokenFolder, @"manifest.json");
                 if (!System.IO.File.Exists(filePath))
                 {
                     // Create a file to write to.
@@ -90,6 +93,132 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                             }
                         };
                         sw.Write(JsonConvert.SerializeObject(tokenJObj, Formatting.Indented));
+                    }
+                }
+                //contract_exchange
+                {
+                    var currentFolder = System.IO.Path.Combine(tokenFolder, @"contract_exchange");
+                    if (!System.IO.Directory.Exists(currentFolder))
+                    {
+                        Directory.CreateDirectory(currentFolder);
+                    }
+                }
+                //images
+                {
+                    var currentFolder = System.IO.Path.Combine(tokenFolder, @"images");
+                    if (!System.IO.Directory.Exists(currentFolder))
+                    {
+                        Directory.CreateDirectory(currentFolder);
+                    }
+                }
+                //incubator
+                {
+                    var currentFolder = System.IO.Path.Combine(tokenFolder, @"incubator");
+                    if (!System.IO.Directory.Exists(currentFolder))
+                    {
+                        Directory.CreateDirectory(currentFolder);
+                    }
+                }
+                //slides
+                {
+                    var currentFolder = System.IO.Path.Combine(tokenFolder, @"slides");
+                    if (!System.IO.Directory.Exists(currentFolder))
+                    {
+                        Directory.CreateDirectory(currentFolder);
+                    }
+                }
+                //updates
+                {
+                    var currentFolder = System.IO.Path.Combine(tokenFolder, @"updates");
+                    if (!System.IO.Directory.Exists(currentFolder))
+                    {
+                        Directory.CreateDirectory(currentFolder);
+                    }
+                }
+
+                //hatcher description.en.txt
+                //hatcher detail.en.md
+                {
+                    var currentHatcher = hatchers.FirstOrDefault(x => x.TokenId == t.Id);
+                    if (currentHatcher != null)
+                    {
+                        {
+                            var currentFilePath = System.IO.Path.Combine(tokenFolder, @"incubator", @"description.en.txt");
+                            if (!System.IO.File.Exists(currentFilePath))
+                            {
+                                using (StreamWriter sw = System.IO.File.CreateText(currentFilePath))
+                                {
+                                    sw.Write($@"{currentHatcher.Introduction}");
+                                }
+                            }
+                        }
+                        {
+                            var currentFilePath = System.IO.Path.Combine(tokenFolder, @"incubator", @"detail.en.md");
+                            if (!System.IO.File.Exists(currentFilePath))
+                            {
+                                using (StreamWriter sw = System.IO.File.CreateText(currentFilePath))
+                                {
+                                    sw.Write($@"{currentHatcher.Detail}");
+                                }
+                            }
+                        }
+
+                    }
+                }
+                //banner
+                {
+                    var currentObj = banners.Where(x => x.TokenId == t.Id).OrderBy(x => x.BannerOrder).ToList();
+                    foreach (var c in currentObj)
+                    {
+                        var currentFilePath = System.IO.Path.Combine(tokenFolder, @"slides", c.BannerOrder + ".en.png");
+                        if (c.Banner != null)
+                        {
+                            using (var bw = new BinaryWriter(System.IO.File.Open(currentFilePath, FileMode.OpenOrCreate)))
+                            {
+                                bw.Write(c.Banner);
+                            }
+                        }
+                    }
+                }
+                //icon
+                {
+                    var currentFilePath = System.IO.Path.Combine(tokenFolder, "icon.png");
+                    if (t.Icon != null)
+                    {
+                        using (var bw = new BinaryWriter(System.IO.File.Open(currentFilePath, FileMode.OpenOrCreate)))
+                        {
+                            bw.Write(t.Icon);
+                        }
+                    }                    
+                }
+
+                //exchange.js
+                var exRow = bancors.FirstOrDefault(x => x.Id == t.Id)?.TradeJavascript;
+                if (!string.IsNullOrWhiteSpace(exRow))
+                {
+                    var exchangejsFilePath = System.IO.Path.Combine(tokenFolder, "contract_exchange", @"exchange.js");
+                    if (!System.IO.File.Exists(exchangejsFilePath))
+                    {
+                        using (StreamWriter sw = System.IO.File.CreateText(exchangejsFilePath))
+                        {
+                            sw.Write(exRow);
+                        }
+                    }
+                }
+
+                //price.js
+                var priceRow = bancors.FirstOrDefault(x => x.Id == t.Id);
+                if (priceRow != null)
+                {
+                    var priceFilePath = System.IO.Path.Combine(tokenFolder, "contract_exchange", @"price.js");
+                    if (!System.IO.File.Exists(priceFilePath))
+                    {
+                        using (StreamWriter sw = System.IO.File.CreateText(priceFilePath))
+                        {
+                            sw.Write($@"{priceRow.CurrentBuyPriceJavascript}
+
+{priceRow.CurrentSellPriceJavascript}");
+                        }
                     }
                 }
             }
