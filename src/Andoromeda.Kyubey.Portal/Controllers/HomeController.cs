@@ -74,7 +74,7 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                         var tokenJObj = new TokenManifestJObject()
                         {
                             Id = t.Id,
-                            Owners = t.User.UserName,
+                            Owners = new string[] { t.User.UserName },
                             Priority = 0,
                             Dex = dexs.Exists(x => x.Id == t.Id),
                             Incubation = hatchers.Exists(x => x.TokenId == t.Id),
@@ -89,7 +89,7 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                                 Email = t.Email,
                                 Github = t.GitHub,
                                 Protocol = t.CurveId,
-                                Tg = "",
+                                Tg = null,
                                 Website = t.WebUrl
 
                             }
