@@ -12,6 +12,7 @@ using Andoromeda.Kyubey.Portal.Models;
 using Pomelo.AspNetCore.Localization;
 using System.IO;
 using Newtonsoft.Json;
+using Andoromeda.Kyubey.Portal.Services;
 
 namespace Andoromeda.Kyubey.Portal.Controllers
 {
@@ -49,10 +50,13 @@ namespace Andoromeda.Kyubey.Portal.Controllers
             var rootFolder = System.AppDomain.CurrentDomain.BaseDirectory;
             var rootTokensFolder = System.IO.Path.Combine(rootFolder, @"Tokens");
 
-            var dexs = db.Otcs.ToList();
-            var bancors = db.Bancors.ToList();
+            var dexs = db.Otcs.Where(x => x.Status == Status.Active).ToList();
+            var bancors = db.Bancors.Where(x => x.Status == Status.Active).ToList();
             var hatchers = db.TokenHatchers.ToList();
             var banners = db.TokenBanners.ToList();
+
+            var settings = new JsonSerializerSettings();
+            settings.ContractResolver = new LowercaseContractResolver();
 
             foreach (var t in tokens)
             {
@@ -92,7 +96,7 @@ namespace Andoromeda.Kyubey.Portal.Controllers
 
                             }
                         };
-                        sw.Write(JsonConvert.SerializeObject(tokenJObj, Formatting.Indented));
+                        sw.Write(JsonConvert.SerializeObject(tokenJObj, Formatting.Indented, settings));
                     }
                 }
                 //contract_exchange
@@ -189,7 +193,7 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                         {
                             bw.Write(t.Icon);
                         }
-                    }                    
+                    }
                 }
 
                 //exchange.js
