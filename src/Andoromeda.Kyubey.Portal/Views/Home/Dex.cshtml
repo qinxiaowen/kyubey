@@ -4,7 +4,11 @@
     ViewBag.Current = "home-dex";
 }
 @await Html.PartialAsync("_Header")
-
+<section style="text-align: center">
+    <form method="get" class="token-search">
+            <input type="text" name="token" value="@ViewBag.SearchToken" class="token-search-textbox" placeholder="@SR["Token"]" /><input type="submit" value="@SR["Search"]" class="token-search-button" />
+        </form>
+</section>
 <section>
     <div class="container currency-table-outer">
         <table class="currency-table">
@@ -25,7 +29,7 @@
                     <td>
                         <img src="/token/@(x.Id).png" class="table-icon" />
                         <div class="table-currency">
-                            <a class="table-currency-symbol" asp-action="Index" asp-controller="Token" asp-route-id="@x.Id">@x.Id</a>
+                            <a class="table-currency-symbol" asp-action="Exchange" asp-controller="Token" asp-route-id="@x.Id">@x.Id</a>
                             <div class="table-currency-name">@x.Name</div>
                         </div>
                     </td>
