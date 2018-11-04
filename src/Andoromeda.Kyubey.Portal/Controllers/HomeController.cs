@@ -77,7 +77,11 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                             Owners = new string[] { t.User.UserName },
                             Priority = 0,
                             Dex = dexs.Exists(x => x.Id == t.Id),
-                            Incubation = hatchers.Exists(x => x.TokenId == t.Id),
+                            Incubation = hatchers.Where(x => x.TokenId == t.Id).Select(x => new IncubationJObject()
+                            {
+                                DeadLine = x.Deadline,
+                                RaisedTarget = x.TargetCredits
+                            }).FirstOrDefault(),
                             Contract_Exchange = bancors.Exists(x => x.Id == t.Id),
                             Basic = new TokenManifestBasicJObject()
                             {
@@ -91,7 +95,6 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                                 Protocol = t.CurveId,
                                 Tg = null,
                                 Website = t.WebUrl
-
                             }
                         };
                         sw.Write(JsonConvert.SerializeObject(tokenJObj, Formatting.Indented, settings));
@@ -166,7 +169,34 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                         }
 
                     }
+                    //token info
+                    else
+                    {
+                        {
+                            var currentFilePath = System.IO.Path.Combine(tokenFolder, @"incubator", @"description.en.txt");
+                            if (!System.IO.File.Exists(currentFilePath))
+                            {
+                                using (StreamWriter sw = System.IO.File.CreateText(currentFilePath))
+                                {
+                                    sw.Write($@"{t.Description}");
+                                }
+                            }
+                        }
+                        {
+                            var currentFilePath = System.IO.Path.Combine(tokenFolder, @"incubator", @"detail.en.md");
+                            if (!System.IO.File.Exists(currentFilePath))
+                            {
+                                using (StreamWriter sw = System.IO.File.CreateText(currentFilePath))
+                                {
+                                    sw.Write($@"{t.Description}");
+                                }
+                            }
+                        }
+                    }
                 }
+
+
+
                 //banner
                 {
                     var currentObj = banners.Where(x => x.TokenId == t.Id).OrderBy(x => x.BannerOrder).ToList();
