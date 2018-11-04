@@ -80,21 +80,25 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                             Incubation = hatchers.Where(x => x.TokenId == t.Id).Select(x => new IncubationJObject()
                             {
                                 DeadLine = x.Deadline,
-                                RaisedTarget = x.TargetCredits
+                                Goal = x.TargetCredits
                             }).FirstOrDefault(),
                             Contract_Exchange = bancors.Exists(x => x.Id == t.Id),
                             Basic = new TokenManifestBasicJObject()
                             {
                                 Contract = new TokenManifestBasicContractJObject()
                                 {
-                                    pricing = t.Contract,
-                                    transfer = t.Contract
+                                    Pricing = t.Contract,
+                                    Transfer = t.Contract
                                 },
                                 Email = t.Email,
                                 Github = t.GitHub,
                                 Protocol = t.CurveId,
                                 Tg = null,
-                                Website = t.WebUrl
+                                Website = t.WebUrl,
+                                Total_Supply = t.DeliveryAmount,
+                                Curve_Arguments = t.CurveArguments.Object.ToArray(),
+                                Price_Scope = bancors.FirstOrDefault(x => x.Id == t.Id)?.Scope,
+                                Price_Table = bancors.FirstOrDefault(x => x.Id == t.Id)?.Table
                             }
                         };
                         sw.Write(JsonConvert.SerializeObject(tokenJObj, Formatting.Indented, settings));
