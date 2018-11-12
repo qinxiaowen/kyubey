@@ -2,6 +2,7 @@
     TokenHandlerViewModel Model = ViewBag.HandlerView;
     Token token = ViewBag.Token;
     ViewBag.Current = "token-about";
+    ViewBag.Theme = "dark";
     ViewBag.Title = token.Id;
     Bancor bancor = ViewBag.Bancor;
 }
@@ -15,7 +16,7 @@
                 <div class="token-incubation-inner">
                     <div class="row">
                         <div class="col-md-7">
-                            <div class="token-incubation-image" v-bind:style="'background: url(/token/tokenbanner/' + current + '.png)'"></div>
+                            <div class="token-incubation-image" v-bind:style="'background: url(' + current + ')'"></div>
                             <div class="token-incubation-image-circle-outer">
                                 <div v-for="x in images" class="token-incubation-image-circle" v-bind:class="{ active: current === x }" v-on:click="current = x"></div>
                             </div>
@@ -27,7 +28,7 @@
                                     <div class="token-incubation-raised">@($"{Model.HandlerInfo.CurrentRaised.ToString("N")} EOS {SR["Raised"]}")</div>
                                     <div class="progress" style="background-color:darkgray;height:30px;">
                                         @{
-                                            int raisedPercent = (Model.HandlerInfo.CurrentRaised == 0 || Model.HandlerInfo.TargetCredits == 0) ? 0 : (int)(Model.HandlerInfo.CurrentRaised / Model.HandlerInfo.TargetCredits);
+                                            int raisedPercent = (Model.HandlerInfo.CurrentRaised == 0 || Model.HandlerInfo.TargetCredits == 0) ? 0 : (int)(100 * Model.HandlerInfo.CurrentRaised / Model.HandlerInfo.TargetCredits);
                                         }
                                         <div class="progress-bar bg-success" role="progressbar" style="width: @(raisedPercent)%" aria-valuenow="@(raisedPercent)" aria-valuemin="0" aria-valuemax="100">@(raisedPercent)%</div>
                                     </div>
@@ -35,21 +36,21 @@
                                 <div class="col-md-6">
                                     <div class="token-incubation-card">
                                         <div class="token-incubation-card-icon"><i class="fa fa-clock-o"></i></div>
-                                        <div class="token-incubation-card-text">@SR["Remain Time"]</div>
+                                        <div class="token-incubation-card-text">@SR["Remaining Time"]</div>
                                         <div class="token-incubation-card-value">@SR["{0} Day(s)", Model.HandlerInfo.RemainingDay]</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="token-incubation-card">
                                         <div class="token-incubation-card-icon"><i class="fa fa-btc"></i></div>
-                                        <div class="token-incubation-card-text">@SR["Goal"]</div>
+                                        <div class="token-incubation-card-text">@SR["Remaining Amount"]</div>
                                         <div class="token-incubation-card-value">@($"{ (Model.HandlerInfo.TargetCredits - Model.HandlerInfo.CurrentRaised).ToString("N")}") EOS</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="token-incubation-card">
                                         <div class="token-incubation-card-icon"><i class="fa fa-thumbs-o-up"></i></div>
-                                        <div class="token-incubation-card-text">@SR["Support"]</div>
+                                        <div class="token-incubation-card-text">@SR["Supporters"]</div>
                                         <div class="token-incubation-card-value">@SR["{0} User(s)", Model.HandlerInfo.CurrentRaisedCount]</div>
                                     </div>
                                 </div>
@@ -85,13 +86,11 @@
                     <div class="tab-pane" id="tab-2" role="tabpanel">
                         @if (Model.RecentUpdate != null)
                         {
-                            var i = Model.RecentUpdate.Count;
                             @foreach (var up in Model.RecentUpdate)
                             {
-                                <h4>@(SR["Recent Update"] + i):</h4>
-                                <p>@up.OperateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</p>
-                                <p>@up.Content</p>
-                                i--;
+                                <h4>@up.Title</h4>
+                                <p>@up.Time.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</p>
+                                <p>@Html.Marked(up.Content)</p>
                             }
                         }
                     </div>
@@ -127,7 +126,7 @@
     var app = new Vue({
         el: '#app',
         data: {
-            images: @(new HtmlString(Newtonsoft.Json.JsonConvert.SerializeObject(Model.HandlerBannerIds))),
+            images: @(new HtmlString(Newtonsoft.Json.JsonConvert.SerializeObject(Model.IncubatorBannerUrls))),
             current: null
         },
         watch: {

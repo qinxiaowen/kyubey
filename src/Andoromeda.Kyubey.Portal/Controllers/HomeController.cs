@@ -9,64 +9,47 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Andoromeda.Kyubey.Models;
 using Andoromeda.Kyubey.Portal.Models;
+using Pomelo.AspNetCore.Localization;
+using Andoromeda.Kyubey.Portal.Interface;
+using Andoromeda.Kyubey.Portal.Services;
 
 namespace Andoromeda.Kyubey.Portal.Controllers
 {
     public class HomeController : BaseController
     {
         [Route("/")]
-        public async Task<IActionResult> Index([FromServices] KyubeyContext db)
+        public async Task<IActionResult> Index([FromServices] KyubeyContext db, [FromServices] ITokenRepository _tokenRepository)
         {
-            //linq 待优化
-            var tokens = await db.TokenHatchers
-                .Include(x => x.Token)
-                .Select(x => new TokenHandlerListVM()
-                {
-                    BannerId = db.TokenBanners.Where(b => b.TokenId == x.TokenId).OrderBy(b => b.BannerOrder).FirstOrDefault().Id.ToString(),
-                    Id = x.TokenId,
-                    Introduction = x.Introduction,
-                    TargetCredits = x.TargetCredits,
-                    CurrentRaised = x.CurrentRaisedSum,
-                    ShowGoExchange = true,
-                })
-                .ToListAsync();
+            var tokenInfoList = _tokenRepository.GetAll().ToList();
+            var dbIncubations = await db.Tokens.Where(x => x.HasIncubation && x.Status == TokenStatus.Active).ToListAsync();
+            var tokens = dbIncubations.OrderByDescending(x => x.Priority).Select(x => new TokenHandlerListViewModel()
+            {
+                Id = x.Id,
+                BannerSrc = TokenTool.GetTokenIncubatorBannerUri(x.Id, _tokenRepository.GetTokenIncubationBannerPaths(x.Id, currentCulture).FirstOrDefault()),
+                CurrentRaised = Convert.ToDecimal(db.RaiseLogs.Where(y => y.TokenId == x.Id && y.Account.Length == 12).Select(y => y.Amount).Sum()),
+                Introduction = _tokenRepository.GetTokenIncubationDescription(x.Id, currentCulture),
+                ShowGoExchange = true,
+                TargetCredits = tokenInfoList.FirstOrDefault(s => s.Id == x.Id)?.Incubation?.Goal ?? 0
+            }).ToList();
 
             return View(tokens);
         }
 
         [Route("/Dex")]
-        public async Task<IActionResult> Dex([FromServices] KyubeyContext db, string token = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Dex([FromServices] KyubeyContext db, [FromServices] ITokenRepository _tokenRepository, string token = null, CancellationToken cancellationToken = default)
         {
+            var tokenStaticInfoList = _tokenRepository.GetAll();
+
             if (token != null)
             {
                 token = token.ToUpper();
             }
             ViewBag.SearchToken = token;
-            IEnumerable<Bancor> bancors = db.Bancors.Include(x => x.Token);
-            if (!string.IsNullOrEmpty(token))
-            {
-                bancors = bancors.Where(x => x.Id.Contains(token) || x.Token.Name.Contains(token));
-            }
-            bancors = bancors
-                .Where(x => x.Status == Status.Active)
-                .OrderByDescending(x => x.Token.Priority)
-                .ToList();
-
-            IEnumerable<Otc> otcs = db.Otcs.Include(x => x.Token);
-            if (!string.IsNullOrEmpty(token))
-            {
-                otcs = otcs.Where(x => x.Id.Contains(token) || x.Token.Name.Contains(token));
-            }
-            otcs = otcs
-                .Where(x => x.Status == Status.Active)
-                .OrderByDescending(x => x.Token.Priority)
-                .ToList();
-
             var ret = new List<TokenDisplay>();
             var tokens = await DB.Tokens.ToListAsync(cancellationToken);
             foreach (var x in tokens)
             {
-                if (!bancors.Any(y => y.Id == x.Id) && !otcs.Any(y => y.Id == x.Id))
+                if (!x.HasDex && !x.HasContractExchange)
                 {
                     continue;
                 }
@@ -76,20 +59,9 @@ namespace Andoromeda.Kyubey.Portal.Controllers
                     Id = x.Id,
                     Name = x.Name,
                     Protocol = x.CurveId ?? SR["Unknown"],
-                    ExchangeInDex = otcs.Any(y => y.Id == x.Id),
-                    ExchangeInContract = bancors.Any(y => y.Id == x.Id)
+                    ExchangeInDex = x.HasDex,
+                    ExchangeInContract = x.HasContractExchange
                 };
-
-                if (t.ExchangeInDex)
-                {
-                    t.Change = otcs.Single(y => y.Id == x.Id).Change;
-                    t.Price = otcs.Single(y => y.Id == x.Id).Price;
-                }
-                else
-                {
-                    t.Change = bancors.Single(y => y.Id == x.Id).Change;
-                    t.Price = bancors.Single(y => y.Id == x.Id).BuyPrice;
-                }
 
                 ret.Add(t);
             }
